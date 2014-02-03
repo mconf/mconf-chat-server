@@ -3,7 +3,7 @@
 # Just put your settings here.
 ########################################################################
 db_name="mconf_production"
-db_user="mconf"
+db_user="mconf_chat"
 db_pass="my-password"
 db_host="my-server.com"
 db_table="users"
