@@ -1,4 +1,4 @@
-Mconf Chat Server For Red Clara
+Mconf Chat Server for Red Clara
 ===============================
 
 This repository holds the files to configure the server component for the chat applications on Mconf.
@@ -102,7 +102,7 @@ Create a new user in the database for `ejabberd`. This user should have access t
 Access MySQL monitor (`mysql -u root -p`) and:
 
 ```bash
-CREATE USER 'mconf_xmpp'@'localhost' IDENTIFIED BY 'password';
+CREATE USER 'mconf_chat'@'localhost' IDENTIFIED BY 'password';
 GRANT ALL PRIVILEGES ON mconf_production.users TO "mconf_xmpp"@"localhost" IDENTIFIED BY "password";
 FLUSH PRIVILEGES;
 ```
@@ -124,7 +124,7 @@ And configure it:
 #Just put your settings here.
 ##########################################################
 db_name="mconf_production"
-db_user="mconf"
+db_user="mconf_chat"
 db_pass="my-password"
 db_host="my-server.com"
 db_table="users"
