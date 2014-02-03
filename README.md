@@ -1,5 +1,5 @@
-Mconf Chat Server
-=================
+Mconf Chat Server For Red Clara
+===============================
 
 This repository holds the files to configure the server component for the chat applications on Mconf.
 The server used is the open source XMPP server [ejabberd](http://www.ejabberd.im/).
@@ -20,7 +20,7 @@ sudo pip install requests
 Install the module `mod_admin_extra` (additional commands for ejabberd). Needed to use VCards.
 
 ```bash
-sudo wget https://github.com/mconf/mconf-chat-server/raw/master/mod_admin_extra.beam -O /usr/lib/ejabberd/ebin/mod_admin_extra.beam
+sudo wget https://github.com/mconf/mconf-chat-server/raw/red-clara-chat-server/mod_admin_extra.beam -O /usr/lib/ejabberd/ebin/mod_admin_extra.beam
 ```
 
 To start/stop it use:
@@ -112,7 +112,7 @@ FLUSH PRIVILEGES;
 Then get the script:
 
 ```bash
-sudo wget https://github.com/mconf/mconf-chat-server/raw/master/JabberAuth.py -O /var/lib/ejabberd/JabberAuth.py
+sudo wget https://github.com/mconf/mconf-chat-server/raw/red-clara-chat-server/JabberAuth.py -O /var/lib/ejabberd/JabberAuth.py
 sudo chown ejabberd:ejabberd /var/lib/ejabberd/JabberAuth.py
 ```
 
@@ -128,11 +128,9 @@ db_user="mconf"
 db_pass="my-password"
 db_host="my-server.com"
 db_table="users"
-db_username_field="login"
-db_password_field="crypted_password"
-db_salt_field="salt"
+db_username_field="username"
+db_password_field="chat_token"
 domain_suffix="@my-server.com"
-auth_url="http://my-server.com/xmpp/me"
 ```
 
 ## Log and configuration files
@@ -153,70 +151,6 @@ The configuration clients can be found at:
 ```
 
 <font color=red>TODO: The server with the MySQL database should have it configured to allow external connections. Add instructions on how to do it and how to test if external connections are allowed (everything's already in the "Development" section below.).</font>
-
-
-## Enabling chat history
-
-Stop ejabberd:
-
-```bash
-sudo /etc/init.d/ejabberd stop
-```
-
-Install the modules `mod_archive_odbc`, `mysql`, `mysql_auth`, `mysql_conn` and `mysql_recv`.
-
-```bash
-sudo wget https://github.com/mconf/mconf-chat-server/raw/master/mod_archive_odbc.beam -O /usr/lib/ejabberd/ebin/mod_archive_odbc.beam
-sudo wget https://github.com/mconf/mconf-chat-server/raw/master/mysql.beam -O /usr/lib/ejabberd/ebin/mysql.beam
-sudo wget https://github.com/mconf/mconf-chat-server/raw/master/mysql_auth.beam -O /usr/lib/ejabberd/ebin/mysql_auth.beam
-sudo wget https://github.com/mconf/mconf-chat-server/raw/master/mysql_conn.beam -O /usr/lib/ejabberd/ebin/mysql_conn.beam
-sudo wget https://github.com/mconf/mconf-chat-server/raw/master/mysql_recv.beam -O /usr/lib/ejabberd/ebin/mysql_recv.beam
-```
-
-Then get the script and execute it (replace `$USER$` by your MySQL user).
-
-```bash
-sudo wget https://github.com/mconf/mconf-chat-server/raw/master/mod_archive_odbc_mysql.sql -O /tmp/mod_archive_odbc_mysql.sql
-mysql -u $USER$ -p < /tmp/mod_archive_odbc_mysql.sql
-```
-
-Now create a new user in MySQL to access the ejabberd database:
-
-```bash
-CREATE USER 'ejabberd_log'@'localhost' IDENTIFIED BY 'password';
-GRANT ALL PRIVILEGES ON ejabberd.* TO "ejabberd_log"@"localhost" IDENTIFIED BY "password";
-FLUSH PRIVILEGES;
-```
-
-Edit /etc/ejabberd/ejabberd.cfg:
-
-```
-%%
-%% MySQL server:
-%% Uncomment and change to:
-{odbc_server, {mysql, "localhost", "ejabberd", "ejabberd_log", "password"}}.
-%%
-
-...
-
-{mod_vcard,       [ {access_set, vcard_set} ]},
-{mod_version,  []},     # Put a comma on the end of this line
-{mod_archive_odbc, [{database_type, "mysql"},
-                    {default_auto_save, true },
-                    {enforce_default_auto_save, false },
-                    {default_expire, infinity },
-                    {enforce_min_expire, 0 },
-                    {enforce_max_expire, infinity },
-                    {replication_expire, 31536000 },
-                    {session_duration, 1800 },
-                    {wipeout_interval, 86400}]}
-```
-
-Start ejabberd:
-
-```bash
-sudo /etc/init.d/ejabberd start
-```
 
 
 # Development
