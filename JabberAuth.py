@@ -2,16 +2,12 @@
 # DB Settings
 # Just put your settings here.
 ########################################################################
-db_name="mconf_production"
-db_user="mconf"
+db_name="mconf_chat_portal"
+db_user="mconf_chat"
 db_pass="my-password"
-db_host="my-server.com"
-db_table="users"
-db_username_field="username"
-db_password_field="encrypted_password"
-db_salt_field="password_salt"
+db_host="localhost"
+db_select_users_tokens="SELECT users.username, chat_tokens.token FROM users AS users INNER JOIN chat_tokens AS chat_tokens ON users.id = chat_tokens.user_id WHERE users.username = '%s';"
 domain_suffix="@my-server.com"
-auth_url="http://my-server.com/users/current.xml"
 
 ########################################################################
 # Setup
@@ -30,6 +26,10 @@ logging.basicConfig(level=logging.DEBUG,
 
 try:
         database=MySQLdb.connect(host=db_host, port=3306, user=db_user, passwd=db_pass, db=db_name)
+        # without the line below we might get always the same data even though it was changed in the
+        # database (e.g. a user password changed)
+        # More at: http://stackoverflow.com/questions/5943418/chronic-stale-results-using-mysqldb-in-python
+        database.autocommit(True)
 except:
         logging.debug("Unable to initialize database, check settings!")
 dbcur=database.cursor()
@@ -43,6 +43,12 @@ class EjabberdInputError(Exception):
 ########################################################################
 # Declarations
 ########################################################################
+def db_connect():
+        try:
+                database = MySQLdb.connect(host=db_host, port=3306, user=db_user, passwd=db_pass, db=db_name)
+        except:
+                logging.debug("Unable to initialize database, check settings!")
+
 def ejabberd_in():
                 logging.debug("trying to read 2 bytes from ejabberd:")
                 try:
@@ -74,16 +80,24 @@ def genanswer(bool):
                 return token
 
 def db_entry(in_user):
-        ls=[None, None]
-        dbcur.execute("SELECT %s,%s,%s FROM %s WHERE %s ='%s'"%(db_username_field,db_password_field,db_salt_field  , db_table, db_username_field, in_user))
-        return dbcur.fetchone()
+        sql = db_select_users_tokens % (in_user)
+        logging.debug("Selecting users and tokens with: "+sql)
+        dbcur.execute(sql)
+        # TODO: return all tokens, not only one
+        found = dbcur.fetchone()
+        logging.debug("Select found: {}".format(found))
+        return found
 
 def isuser(in_user, in_host):
+        logging.debug("User unescaped: "+in_user)
         data=db_entry(in_user)
         out=False
         if data==None:
                 out=False
                 logging.debug("Wrong username: %s"%(in_user))
+                return out
+
+        logging.debug("Data: "+data[0]+domain_suffix)
         if in_user+"@"+in_host==data[0]+domain_suffix:
                 out=True
         return out
@@ -91,52 +105,28 @@ def isuser(in_user, in_host):
 def auth(in_user, in_host, password):
         try:
                 data=db_entry(in_user)
-        except:
-                return False
+                logging.debug("Data on auth is: "+data)
+        except Exception, err:
+                logging.debug("Got exception: {}".format(err))
+                try:
+                        db_connect()
+                except:
+                        logging.debug("Database fail")
+                        return False
         out=False
         if data==None:
                 out=False
                 logging.debug("Wrong username: %s"%(in_user))
+                return out
+        logging.info("User data is: %s, %s" % (data[0], data[1]))
         if in_user+"@"+in_host==data[0]+domain_suffix:
-                if password==data[1] or hashlib.sha1("--"+data[2]+"--"+password+"--").hexdigest()==data[1]:
+                if password==data[1]:
                         out=True
                 else:
                         logging.debug("Wrong password for user: %s"%(in_user))
                         out=False
         else:
                 out=False
-        return out
-
-def authByPass(in_user, in_password):
-        out = False
-        try:
-                xml = requests.get(auth_url, auth=(in_user, in_password), verify=False)
-        except:
-                return False
-        try:
-                dom = parseString(xml.text)
-        except:
-                return False
-        username = dom.getElementsByTagName(db_username_field)[0].firstChild.data
-        if in_user == username:
-                out = True
-        return out
-
-def authByCookie(in_user, in_cookie):
-        out = False
-        cookies = dict(_mconf_session=pass_args[1])
-        try:
-                xml = requests.get(auth_url, cookies=cookies, verify=False)
-        except:
-                return False
-        logging.info("parsing %s", xml.text)
-        try:
-                dom = parseString(xml.text.encode('utf-8'))
-        except:
-                return False
-        username = dom.getElementsByTagName(db_username_field)[0].firstChild.data
-        if in_user == username:
-                out = True
         return out
 
 def log_result(op, in_user, bool):
@@ -157,26 +147,15 @@ while True:
                 break
         logging.debug('operation: %s'%(ejab_request[0]))
         op_result = False
+        ejab_request[1] = ejab_request[1].replace("\\40","@")
+
+        logging.debug("User: "+ejab_request[1])
         if ejab_request[0] == "auth":
-                pass_args = ejab_request[3].split('>>')
-                if pass_args[0] == "AuthByPass":
-                        op_result = auth(ejab_request[1], ejab_request[2], pass_args[1])
-                        ejabberd_out(op_result)
-                        log_result(ejab_request[0], ejab_request[1], op_result)
-                elif pass_args[0] == "AuthByCookie":
-                        op_result = authByCookie(ejab_request[1], pass_args[1])
-                        ejabberd_out(op_result)
-                        log_result(ejab_request[0], ejab_request[1], op_result)
-                else:
-                        op_result = auth(ejab_request[1], ejab_request[2], ejab_request[3])
-                        ejabberd_out(op_result)
-                        log_result(ejab_request[0], ejab_request[1], op_result)
-        elif ejab_request[0] == "isuser":
-                op_result = isuser(ejab_request[1], ejab_request[2])
+                op_result = auth(ejab_request[1], ejab_request[2], ejab_request[3])
                 ejabberd_out(op_result)
                 log_result(ejab_request[0], ejab_request[1], op_result)
-        elif ejab_request[0] == "setpass":
-                op_result=False
+        elif ejab_request[0] == "isuser":
+                op_result = isuser(ejab_request[1], ejab_request[2])
                 ejabberd_out(op_result)
                 log_result(ejab_request[0], ejab_request[1], op_result)
 

@@ -102,8 +102,8 @@ Create a new user in the database for `ejabberd`. This user should have access t
 Access MySQL monitor (`mysql -u root -p`) and:
 
 ```bash
-CREATE USER 'mconf_xmpp'@'localhost' IDENTIFIED BY 'password';
-GRANT ALL PRIVILEGES ON mconf_production.users TO "mconf_xmpp"@"localhost" IDENTIFIED BY "password";
+CREATE USER 'mconf_chat'@'localhost' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON mconf_chat_portal.* TO "mconf_chat"@"localhost" IDENTIFIED BY "password";
 FLUSH PRIVILEGES;
 ```
 
@@ -123,16 +123,13 @@ And configure it:
 #DB Settings
 #Just put your settings here.
 ##########################################################
-db_name="mconf_production"
-db_user="mconf"
+db_name="mconf_chat_portal"
+db_user="mconf_chat"
 db_pass="my-password"
 db_host="my-server.com"
 db_table="users"
-db_username_field="login"
-db_password_field="crypted_password"
-db_salt_field="salt"
+db_select_users_tokens="SELECT users.username, chat_tokens.token FROM users AS users INNER JOIN chat_tokens AS chat_tokens ON users.id = chat_tokens.user_id WHERE users.username = '%s';"
 domain_suffix="@my-server.com"
-auth_url="http://my-server.com/xmpp/me"
 ```
 
 ## Log and configuration files
@@ -247,7 +244,7 @@ sudo service mysql restart
 The db user should be able to access the database even from another host:
 
 ```sql
-GRANT ALL PRIVILEGES ON mconf_production.* TO 'mconf'@'%' IDENTIFIED BY '<password>' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON mconf_chat_portal.* TO 'mconf_chat'@'%' IDENTIFIED BY '<password>' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 ```
 
