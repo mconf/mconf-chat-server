@@ -105,7 +105,6 @@ def isuser(in_user, in_host):
 def auth(in_user, in_host, password):
         try:
                 data=db_entry(in_user)
-                logging.debug("Data on auth is: "+data)
         except Exception, err:
                 logging.debug("Got exception: {}".format(err))
                 try:
