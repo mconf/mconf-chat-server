@@ -91,8 +91,8 @@ def isuser(in_user, in_host):
         logging.debug("User unescaped: "+in_user)
         data_set=db_entry(in_user)
         out=False
+
         if data_set==None:
-                out=False
                 logging.debug("Wrong username: %s"%(in_user))
                 return out
 
@@ -100,7 +100,6 @@ def isuser(in_user, in_host):
                 logging.debug("Data: "+data[0]+domain_suffix)
                 if in_user+"@"+in_host==data[0]+domain_suffix:
                         out=True
-                elif out:
                         break
         return out
 
@@ -115,22 +114,18 @@ def auth(in_user, in_host, password):
                         logging.debug("Database fail")
                         return False
         out=False
+
         if data_set==None:
-                out=False
                 logging.debug("Wrong username: %s"%(in_user))
                 return out
+
         for data in data_set:
-                logging.info("User data is: %s, %s" % (data[0], data[1]))
                 if in_user+"@"+in_host==data[0]+domain_suffix:
                         if password==data[1]:
                                 out=True
+                                break
                         else:
                                 logging.debug("Wrong password for user: %s"%(in_user))
-                                out=False
-                elif out:
-                        break
-                else:
-                        out=False
         return out
 
 def log_result(op, in_user, bool):
