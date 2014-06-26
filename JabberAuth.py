@@ -122,8 +122,7 @@ def auth(in_user, in_host, password):
         for data in data_set:
                 if in_user+"@"+in_host==data[0]+domain_suffix:
                         if password==data[1]:
-                                out=True
-                                break
+                                return True
                         else:
                                 logging.debug("Wrong password for user: %s"%(in_user))
         return out
